@@ -1,128 +1,161 @@
-// This file is part of Moodle - https://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
-
-/**
- * Commands helper for the Moodle tiny_fontcolor plugin.
- *
- * @module      tiny_fontcolor/commands
- * @copyright   2025 Veronica Bermegui
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- *
- */
-
 import {getButtonImage} from 'editor_tiny/utils';
 import {get_string as getString} from 'core/str';
 import {
     component,
     fontColorButtonName,
-    fontColorMenuItemName,
     icon,
 } from './common';
-
 
 let colorPickerContainer = null;
 let isPickerVisible = false;
 let clickHandler = null;
-let originalHide = null;
 
 /**
- * Show colour picker
+ * Displays the color picker
  */
 const showColorPicker = (editor, buttonTitle) => {
-    // hide any visible picker first
+
     hideColorPicker();
 
-    // Create the colour picker container
+    // Creates the main container
     colorPickerContainer = document.createElement('div');
-    colorPickerContainer.className = 'fontcolor-picker';
+    colorPickerContainer.className = 'tiny-fontcolor-picker';
     Object.assign(colorPickerContainer.style, {
-        position: 'absolute',
+        position: 'fixed',
         zIndex: '999999',
         backgroundColor: 'white',
-        padding: '5px',
-        borderRadius: '3px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-        border: '1px solid #ddd'
+        padding: '15px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        border: '1px solid #ddd',
+        width: '200px'
     });
 
     // Create input colour
     const colorInput = document.createElement('input');
     colorInput.type = 'color';
     Object.assign(colorInput.style, {
-        width: '30px',
-        height: '30px',
-        border: 'none',
+        width: '100%',
+        height: '50px',
         cursor: 'pointer',
-        padding: 0
+        border: '2px solid #eee',
+        borderRadius: '6px',
+        padding: '2px',
+        display: 'block'
     });
 
-    // Apply colour
-    colorInput.addEventListener('change', () => {
-        editor.execCommand('ForeColor', false, colorInput.value);
-        hideColorPicker();
-    });
-
-    // Position relative to the button
-    const button = editor.editorContainer?.querySelector(`.tox-tbtn[aria-label="${buttonTitle}"]`);
-    if (button) {
-        const rect = button.getBoundingClientRect();
-        Object.assign(colorPickerContainer.style, {
-            top: `${rect.bottom + window.scrollY}px`,
-            left: `${rect.left + window.scrollX}px`
-        });
+    // set colour based on the initial/previous selection
+    const initialColor = getSelectionColor(editor);
+    if (initialColor) {
+        colorInput.value = rgbToHex(initialColor);
     }
 
-    // Add to the DOM
+    // Apply colour when changed
+    colorInput.addEventListener('input', (e) => {
+        editor.execCommand('ForeColor', false, e.target.value);
+    });
+
+    // Close colour picker when it finishes selecting delay de closing.
+    colorInput.addEventListener('change', () => setTimeout(hideColorPicker, 2000));
+
+    // Add colour picker to the container
     colorPickerContainer.appendChild(colorInput);
+
+    // Add the container to the DOM
     document.body.appendChild(colorPickerContainer);
     isPickerVisible = true;
 
-    // Close on outside click
-    setTimeout(() => {
-        clickHandler = (e) => {
-            if (!colorPickerContainer?.contains(e.target) &&
-                !button?.contains(e.target)) {
-                hideColorPicker();
-            }
-        };
-        document.addEventListener('click', clickHandler);
+    // Position the selector near the toolbar button
+    const button = editor.editorContainer.querySelector(`.tox-tbtn[aria-label="${buttonTitle}"]`);
+    if (button) {
+        const rect = button.getBoundingClientRect();
+        Object.assign(colorPickerContainer.style, {
+            top: `${rect.bottom}px`,
+            left: `${rect.left}px`
+        });
+    }
 
-        // Clean up event listener when hiding
-        originalHide = hideColorPicker;
-        hideColorPicker = () => {
-            if (clickHandler) {
-                document.removeEventListener('click', clickHandler);
-                clickHandler = null;
-            }
-            originalHide();
-            hideColorPicker = originalHide;
-        };
-    }, 0);
+    // Focus the input after a delay
+    setTimeout(() => colorInput.focus(), 1500);
+
+    // Close
+    clickHandler = (e) => {
+        if (colorPickerContainer && !colorPickerContainer.contains(e.target)) {
+            hideColorPicker();
+        }
+    };
+    document.addEventListener('mousedown', clickHandler);
 };
 
+
+
+
 /**
- * Hides the color picker
+ * Get the colour of the selected text
  */
-let hideColorPicker = () => {
+function getSelectionColor(editor) {
+    if (!editor || !editor.dom || !editor.selection) return null;
+
+    const dom = editor.dom;
+    const selection = editor.selection;
+    const nodes = selection.getSelectedBlocks() || [selection.getNode()];
+
+    for (const node of nodes) {
+        if (!node) continue;
+
+        const color = dom.getStyle(node, 'color') || node.getAttribute('color');
+        if (color) return color;
+
+        const coloredChildren = dom.select('*[style*="color"], *[color]', node);
+        if (coloredChildren?.length > 0) {
+            const childColor = dom.getStyle(coloredChildren[0], 'color') ||
+                             coloredChildren[0]?.getAttribute('color');
+            if (childColor) return childColor;
+        }
+    }
+    return null;
+}
+
+/**
+ * Hide colour picker
+ */
+const hideColorPicker = () => {
     if (colorPickerContainer && isPickerVisible) {
-        document.body.removeChild(colorPickerContainer);
+        if (colorPickerContainer.parentNode) {
+            colorPickerContainer.parentNode.removeChild(colorPickerContainer);
+        }
         colorPickerContainer = null;
         isPickerVisible = false;
+
+        if (clickHandler) {
+            document.removeEventListener('mousedown', clickHandler);
+            clickHandler = null;
+        }
     }
 };
 
+/**
+ * Convierte color RGB a HEX
+ */
+function rgbToHex(rgb) {
+    if (!rgb) return '#000000'; // Default black.
+
+    const rgbValues = rgb.match(/\d+/g);
+    if (!rgbValues || rgbValues.length < 3) return '#000000';
+
+    const r = parseInt(rgbValues[0]);
+    const g = parseInt(rgbValues[1]);
+    const b = parseInt(rgbValues[2]);
+
+    return '#' + [r, g, b].map(x => {
+        const hex = x.toString(16).padStart(2, '0');
+        return hex.length === 1 ? '0' + hex : hex;
+    }).join('');
+}
+
+/**
+ * Plugin configuration
+ */
 export const getSetup = async () => {
     const [buttonTitle, menuTitle, btnImage] = await Promise.all([
         getString('button_fontcolor', component),
@@ -133,7 +166,6 @@ export const getSetup = async () => {
     return (editor) => {
         editor.ui.registry.addIcon(icon, btnImage.html);
 
-        // Toolbar button
         editor.ui.registry.addButton(fontColorButtonName, {
             icon,
             tooltip: buttonTitle,
@@ -146,16 +178,6 @@ export const getSetup = async () => {
             }
         });
 
-        // Menu item (original behavior)
-        editor.ui.registry.addMenuItem(fontColorMenuItemName, {
-            icon,
-            text: menuTitle,
-            onAction: () => {
-                editor.execCommand('ForeColor', false, '#000000');
-            }
-        });
-
-        // Close picker when the editor loses focus
         editor.on('blur', hideColorPicker);
     };
 };

@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Font color picker';
 $string['privacy:metadata'] = 'Font color does not store any personal data';
-$string['button_fontcolor'] = 'Font color';
+$string['button_fontcolor'] = 'Font colour';
 $string['menuitem_fontcolor'] = 'Font color MenuItem';
 
 // <div> Icons made by <a href="https://www.flaticon.com/authors/idealogo-studio" title="Idealogo Studio"> Idealogo Studio </a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com'</a></div>
