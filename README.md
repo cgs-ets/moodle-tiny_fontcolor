@@ -1,4 +1,4 @@
-# Presentation Embed Plugin #
+# Change Font color Plugin #
 
 A plugin to change font colour
 
