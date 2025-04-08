@@ -58,7 +58,7 @@ const showColorPicker = (editor, buttonTitle) => {
     });
 
     // Close colour picker when it finishes selecting delay de closing.
-    colorInput.addEventListener('change', () => setTimeout(hideColorPicker, 2700));
+    colorInput.addEventListener('change', () => setTimeout(hideColorPicker, 3700));
 
     // Add colour picker to the container
     colorPickerContainer.appendChild(colorInput);
@@ -77,9 +77,8 @@ const showColorPicker = (editor, buttonTitle) => {
         });
     }
 
-    // Focus the input after a delay
-    colorInput.focus();
-    // setTimeout(() => colorInput.focus(), 0);
+    // Focus the input
+    setTimeout(() => colorInput.focus(), 0);
 
     // Close
     clickHandler = (e) => {
