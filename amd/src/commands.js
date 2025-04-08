@@ -44,11 +44,13 @@ const showColorPicker = (editor, buttonTitle) => {
         display: 'block'
     });
 
+
     // set colour based on the initial/previous selection
     const initialColor = getSelectionColor(editor);
     if (initialColor) {
         colorInput.value = rgbToHex(initialColor);
     }
+
 
     // Apply colour when changed
     colorInput.addEventListener('input', (e) => {
@@ -56,7 +58,7 @@ const showColorPicker = (editor, buttonTitle) => {
     });
 
     // Close colour picker when it finishes selecting delay de closing.
-    colorInput.addEventListener('change', () => setTimeout(hideColorPicker, 2000));
+    colorInput.addEventListener('change', () => setTimeout(hideColorPicker, 2700));
 
     // Add colour picker to the container
     colorPickerContainer.appendChild(colorInput);
@@ -76,7 +78,8 @@ const showColorPicker = (editor, buttonTitle) => {
     }
 
     // Focus the input after a delay
-    setTimeout(() => colorInput.focus(), 1500);
+    colorInput.focus();
+    // setTimeout(() => colorInput.focus(), 0);
 
     // Close
     clickHandler = (e) => {
