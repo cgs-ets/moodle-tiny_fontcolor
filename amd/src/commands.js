@@ -9,6 +9,9 @@ import {
 let colorPickerContainer = null;
 let isPickerVisible = false;
 let clickHandler = null;
+let isTyping = false;
+let activityDetected = false;
+let closeTimer = null;
 
 /**
  * Displays the color picker
@@ -57,8 +60,30 @@ const showColorPicker = (editor, buttonTitle) => {
         editor.execCommand('ForeColor', false, e.target.value);
     });
 
-    // Close colour picker when it finishes selecting delay de closing.
-    colorInput.addEventListener('change', () => setTimeout(hideColorPicker, 3700));
+     //User starts typing
+     colorInput.addEventListener('focus', () => {
+        isTyping = true;
+        resetCloseTimer();
+    });
+
+    // Finish typing
+    colorInput.addEventListener('input', () => {
+        activityDetected = true;
+        resetCloseTimer();
+    });
+
+    // Loose focus
+    colorInput.addEventListener('blur', () => {
+        isTyping = false;
+        resetCloseTimer();
+    });
+
+    //  typing
+    colorInput.addEventListener('keydown', () => {
+        isTyping = true;
+        activityDetected = true;
+        resetCloseTimer();
+    });
 
     // Add colour picker to the container
     colorPickerContainer.appendChild(colorInput);
@@ -86,6 +111,7 @@ const showColorPicker = (editor, buttonTitle) => {
             hideColorPicker();
         }
     };
+
     document.addEventListener('mousedown', clickHandler);
 };
 
@@ -134,10 +160,13 @@ const hideColorPicker = () => {
             clickHandler = null;
         }
     }
+
+    isTyping = false;
+    activityDetected = false;
 };
 
 /**
- * Convierte color RGB a HEX
+ * Turn  RGB a HEX
  */
 function rgbToHex(rgb) {
     if (!rgb) return '#000000'; // Default black.
@@ -153,6 +182,21 @@ function rgbToHex(rgb) {
         const hex = x.toString(16).padStart(2, '0');
         return hex.length === 1 ? '0' + hex : hex;
     }).join('');
+}
+
+function resetCloseTimer() {
+    clearTimeout(closeTimer);
+
+    if (isPickerVisible && colorPickerContainer) {
+        closeTimer = setTimeout(() => {
+            if (!activityDetected && !isTyping) {
+                hideColorPicker();
+            } else {
+                activityDetected = false;
+                resetCloseTimer();
+            }
+        }, isTyping ? 3000 : 1500);
+    }
 }
 
 /**
